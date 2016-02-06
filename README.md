@@ -23,8 +23,8 @@ Ctrl+x. For further details see
 Here's a basic usage example:
 
 - start Emacs
-- `M-x load-file RET`
-- choose the `load.el` file in qrencode directory
+- `M-x cd RET <qrencode directory here> RET`
+- `M-x load-file RET load.el RET`
 - put the cursor in an empty buffer (like `*scratch*`) and
 type some example text like `hello qrencode!`.
 - mark the `hello qrencode!` with the mouse and type
