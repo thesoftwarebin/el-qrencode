@@ -17,4 +17,8 @@
 (load-file "qrencode/matrix.el")
 (load-file "qrencode/modes.el")
 
-(load-file "qrencode-region.el")
+(load-file "emacs-commands.el")
+
+;; raise memory limits, else Emacs will complain
+(setf max-specpdl-size 12000)
+(setf max-lisp-eval-depth 12000)
