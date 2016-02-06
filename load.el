@@ -16,3 +16,5 @@
 (load-file "qrencode/mask.el")
 (load-file "qrencode/matrix.el")
 (load-file "qrencode/modes.el")
+
+(load-file "qrencode-region.el")
