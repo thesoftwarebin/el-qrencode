@@ -2,16 +2,21 @@
 ;;;;
 ;;;; bit stream (a list of 0-1 values) utilities
 
-(in-package #:cl-qrencode)
+;;(in-package #:cl-qrencode)
+
+(require 'cl)
+
+(defun bstream-logbitp (j i) (> (logand i (lsh 1 j)) 0))
 
 (defun decimal->bstream (dec nbits)
   "using NBITS bits to encode decimal DEC"
   (let ((bstream nil))
     (dotimes (i nbits)
-      (if (logbitp i dec)
+      (if (bstream-logbitp i dec)
           (push 1 bstream)
           (push 0 bstream)))
     bstream))
+
 (defun bstream->decimal (bstream nbits)
   (declare (type list bstream))
   (let ((nbits (min nbits (length bstream)))
@@ -28,13 +33,15 @@
     (1 (nth 0 values))
     (2 (+ (* (nth 0 values) 10) (nth 1 values)))
     (3 (+ (* (nth 0 values) 100) (* (nth 1 values) 10) (nth 2 values)))))
+
 (defun final-digit-bits (n)
   "the final one or two digits are converted to 4 or 7 bits respectively"
   (case n
     (0 0) (1 4) (2 7)))
+
 (defun numeric->bstream (bytes)
   (declare (type list bytes))
-  (labels ((num-value (byte)
+  (cl-labels ((num-value (byte)
              (byte-value :numeric byte)))
     (let ((values (mapcar #'num-value bytes))
           (bstream nil))
@@ -61,9 +68,10 @@
   (case num
     (1 (nth 0 values))
     (2 (+ (* (nth 0 values) 45) (nth 1 values)))))
+
 (defun alnum->bstream (bytes)
   (declare (type list bytes))
-  (labels ((alnum-value (byte)
+  (cl-labels ((alnum-value (byte)
              (byte-value :alnum byte)))
     (let ((values (mapcar #'alnum-value bytes))
           (bstream nil))
@@ -82,7 +90,7 @@
 ;;; :byte mode
 (defun byte->bstream (bytes)
   (declare (type list bytes))
-  (labels ((join (prev cur)
+  (cl-labels ((join (prev cur)
              (append prev (decimal->bstream (byte-value :byte cur) 8))))
     (reduce #'join bytes :initial-value nil)))
 
@@ -93,10 +101,11 @@
                       (1 #xc140))))
     (decf word subtractor)
     (setf word (+ (* (ash word -8) #xc0)
-                  (boole boole-and word #xff)))))
+                  (logand word #xff)))))
+
 (defun kanji->bstream (bytes)
   (declare (type list bytes))
-  (labels ((kanji-value (byte)
+  (cl-labels ((kanji-value (byte)
              (byte-value :kanji byte)))
     (let ((values (mapcar #'kanji-value bytes))
           (delta 1)

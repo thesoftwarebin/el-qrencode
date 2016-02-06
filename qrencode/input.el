@@ -1,19 +1,21 @@
 ;;;; Copyright (c) 2011-2014 jnjcc, Yste.org. All rights reserved.
 ;;;;
 
-(in-package #:cl-qrencode)
+;; (in-package #:cl-qrencode)
+(require 'cl)
+(require 'eieio)
 
 (defclass qr-input ()
   ((bytes
     :initform nil :initarg :bytes :reader bytes :type list
     :documentation "list of bytes to be encoded")
-   (version
-    :initform 1 :initarg :version :reader version
+   (qrversion
+    :initform 1 :initarg :qrversion :reader qrversion
     :documentation "version of qr symbol, adapted according to BYTES")
    (ec-level ; cannot be NIL
-    :initform :level-m :initarg :ec-level :reader level :type ecc-level)
+    :initform :level-m :initarg :ec-level :reader level)
    (mode
-    :initform nil :initarg :mode :reader mode :type (or nil qr-mode)
+    :initform nil :initarg :mode :reader mode ;; :type (or nil qr-mode)
     :documentation "if supplied, we force all BYTES to be under MODE,
 therefore, unless you know exactly what you are doing, leave this NIL")
    (cur-byte
@@ -34,7 +36,7 @@ after converting BSTREAM to codewords")
     :initform nil :reader ecc-blocks :type list
     :documentation "list of list, ec codewords corresponding to BLOCKS")
    (msg-codewords
-    :initform nil :reader message :type list
+    :initform nil :reader qrmessage :type list
     :documentation "list of codewords from BLOCKS & ECC-BLOCKS,
 interleaving if neccessary")
    (matrix
@@ -47,34 +49,34 @@ interleaving if neccessary")
 
 ;;; 0) Data analysis
 (defgeneric validate-and-analysis (input)
-  (:documentation "adapt VERSION according to BYTES, and fill SEGMENTS slot"))
+  "adapt VERSION according to BYTES, and fill SEGMENTS slot")
 ;;; 1) Data encoding
 (defgeneric data-encoding (input)
-  (:documentation "encode SEGMENTS into BSTREAM slot"))
+  "encode SEGMENTS into BSTREAM slot")
 ;;; 2) Error correction coding
 (defgeneric ec-coding (input)
-  (:documentation "split BSTREAM into BLOCKS, do rs-ecc, and fill ECC-BLOCKS"))
+  "split BSTREAM into BLOCKS, do rs-ecc, and fill ECC-BLOCKS")
 ;;; 3) Structure final message
 (defgeneric structure-message (input)
-  (:documentation "interleaving BLOCKS and ECC-BLOCKS into MSG-CODEWORDS"))
+  "interleaving BLOCKS and ECC-BLOCKS into MSG-CODEWORDS")
 ;;; 4) Codeword placement in matrix, a.k.a, raw QR code symbol
 (defgeneric module-placement (input)
-  (:documentation "write MSG-CODEWORDS into the raw (without masking) MATRIX"))
+  "write MSG-CODEWORDS into the raw (without masking) MATRIX")
 ;;; 5) Data masking & Format information
 (defgeneric data-masking (input)
-  (:documentation "mask MATRIX with best pattern, generate the final symbol"))
+  "mask MATRIX with best pattern, generate the final symbol")
 
 (defgeneric data-analysis (input)
-  (:documentation "BYTES -> SEGMETS, switch bewteen modes as necessary to
-achieve the most efficient conversion of data"))
+  "BYTES -> SEGMETS, switch bewteen modes as necessary to
+achieve the most efficient conversion of data")
 (defgeneric redo-data-analysis (input)
-  (:documentation "VERSION changed, reset CUR-BYTE and redo data analysis"))
+  "VERSION changed, reset CUR-BYTE and redo data analysis")
 (defgeneric analyse-byte-mode (input &optional seg))
 (defgeneric analyse-alnum-mode (input &optional seg))
 (defgeneric analyse-numeric-mode (input &optional seg))
 (defgeneric analyse-kanji-mode (input &optional seg))
 (defgeneric append-cur-byte (input &optional seg)
-  (:documentation "append CUR-BYTE of BYTES into SEGMENTS"))
+  "append CUR-BYTE of BYTES into SEGMENTS")
 (defun mode-analyse-func (mode)
   "put CUR-BYTE into MODE, and then look at following BYTES for new segment"
   (case mode
@@ -90,8 +92,8 @@ achieve the most efficient conversion of data"))
         (setf cur-byte (length (bytes input)))
         (setf segments (append segments (list seg))))
       (return-from data-analysis)))
-  (with-slots (bytes version segments) input
-    (let ((init-mode (select-init-mode bytes version)))
+  (with-slots (bytes qrversion segments) input
+    (let ((init-mode (select-init-mode bytes qrversion)))
       (funcall (mode-analyse-func init-mode) input))))
 
 (defmethod redo-data-analysis ((input qr-input))
@@ -163,13 +165,13 @@ achieve the most efficient conversion of data"))
          (values nunits (xor-subset-of b)))
       (incf nunits))))
 
-(defmethod analyse-byte-mode ((input qr-input) &optional (seg '(:byte)))
+(defmethod analyse-byte-mode ((input qr-input) seg)
   (declare (type list seg))
   (setf seg (append-cur-byte input seg))
   (unless seg
     (return-from analyse-byte-mode))
-  (with-slots (bytes cur-byte version segments) input
-    (let* ((range (version-range version))
+  (with-slots (bytes cur-byte qrversion segments) input
+    (let* ((range (version-range qrversion))
            (nkunits (ecase range ; number of :kanji units before more :byte
                       (0 9) (1 12) (2 13)))
            (nanuits (ecase range ; number of :alnum units before more :byte
@@ -204,13 +206,13 @@ achieve the most efficient conversion of data"))
           (setf switch-mode :byte))
       (funcall (mode-analyse-func switch-mode) input seg))))
 
-(defmethod analyse-alnum-mode ((input qr-input) &optional (seg '(:alnum)))
+(defmethod analyse-alnum-mode (input seg)
   (declare (type list seg))
   (setf seg (append-cur-byte input seg))
   (unless seg
     (return-from analyse-alnum-mode))
-  (with-slots (bytes cur-byte version segments) input
-    (let ((nmunits (ecase (version-range version)
+  (with-slots (bytes cur-byte qrversion segments) input
+    (let ((nmunits (ecase (version-range qrversion)
                      (0 13) (1 15) (2 17)))
           (switch-mode nil))
       (when (>= (nunits-matches (nthcdr cur-byte bytes) :kanji) 1)
@@ -230,12 +232,12 @@ achieve the most efficient conversion of data"))
           (setf switch-mode :alnum))
       (funcall (mode-analyse-func switch-mode) input seg))))
 
-(defmethod analyse-numeric-mode ((input qr-input) &optional (seg '(:numeric)))
+(defmethod analyse-numeric-mode (input seg)
   (declare (type list seg))
   (setf seg (append-cur-byte input seg))
   (unless seg
     (return-from analyse-numeric-mode))
-  (with-slots (bytes cur-byte version segments) input
+  (with-slots (bytes cur-byte qrversion segments) input
     (let ((switch-mode nil))
       (when (>= (nunits-matches (nthcdr cur-byte bytes) :kanji) 1)
         (setf switch-mode :kanji))
@@ -263,7 +265,7 @@ achieve the most efficient conversion of data"))
       (setf seg nil))
     (return-from append-cur-byte seg)))
 
-(defmethod analyse-kanji-mode ((input qr-input) &optional (seg '(:kanji)))
+(defmethod analyse-kanji-mode (input seg)
   (declare (type list seg))
   (with-slots (bytes cur-byte segments) input
     (setf seg (append seg (nthcdr cur-byte bytes)))
@@ -272,28 +274,28 @@ achieve the most efficient conversion of data"))
 
 (defmethod validate-and-analysis ((input qr-input))
   (with-slots ((level ec-level) segments) input
-    (unless (<= 1 (version input) 40)
-      (error "version ~A out of bounds" (version input)))
+    (unless (<= 1 (qrversion input) 40)
+      (error "version %s out of bounds" (qrversion input)))
     (do ((prev -1))
-        ((<= (version input) prev))
-      (setf prev (version input))
+        ((<= (qrversion input) prev))
+      (setf prev (qrversion input))
       (redo-data-analysis input)
-      (labels ((seg-bstream-len (seg)
-                 (segment-bstream-length seg (version input))))
+      (cl-labels ((seg-bstream-len (seg)
+                 (segment-bstream-length seg (qrversion input))))
         (let* ((blen (reduce #'+ (mapcar #'seg-bstream-len segments)
                              :initial-value 0))
                (min-v (minimum-version prev (ceiling blen 8) level)))
           (if min-v
-              (setf (slot-value input 'version) min-v)
-              (error "no version to hold ~A bytes" (ceiling blen 8))))))))
+              (setf (slot-value input 'qrversion) min-v)
+              (error "no version to hold %s bytes" (ceiling blen 8))))))))
 
 (defmethod data-encoding ((input qr-input))
-  (with-slots (version (level ec-level) segments) input
-    (labels ((seg->bstream (seg)
-               (segment->bstream seg version)))
+  (with-slots (qrversion (level ec-level) segments) input
+    (cl-labels ((seg->bstream (seg)
+               (segment->bstream seg qrversion)))
       (let* ((bs (reduce #'append (mapcar #'seg->bstream segments)
                          :initial-value nil))
-             (tt (terminator bs version level))
+             (tt (terminator bs qrversion level))
              ;; connect bit streams in all segment, with terminator appended
              (bstream (append bs tt)))
         ;; add padding bits
@@ -301,10 +303,10 @@ achieve the most efficient conversion of data"))
         ;; add pad codewords, finishes data encoding
         (setf (slot-value input 'bstream)
               (append bstream
-                      (pad-codewords bstream version level)))))))
+                      (pad-codewords bstream qrversion level)))))))
 
 (defmethod ec-coding ((input qr-input))
-  (with-slots (version (level ec-level) bstream) input
+  (with-slots (qrversion (level ec-level) bstream) input
     (let ((codewords (bstream->codewords bstream))
           (blocks nil)
           (ecc-blocks nil)
@@ -312,7 +314,7 @@ achieve the most efficient conversion of data"))
           (rs1 nil)
           (rs2 nil))
       (multiple-value-bind (ecc-num blk1 data1 blk2 data2)
-          (ecc-block-nums version level)
+          (ecc-block-nums qrversion level)
         (when (> blk1 0)
           (setf rs1 (make-instance 'rs-ecc :k data1 :ec ecc-num)))
         (when (> blk2 0)
@@ -335,10 +337,10 @@ achieve the most efficient conversion of data"))
         (setf (slot-value input 'ecc-blocks) ecc-blocks)))))
 
 (defmethod structure-message ((input qr-input))
-  (with-slots (version (level ec-level) blocks ecc-blocks) input
+  (with-slots (qrversion (level ec-level) blocks ecc-blocks) input
     (let ((final nil))
       (multiple-value-bind (ecc-num blk1 data1 blk2 data2)
-          (ecc-block-nums version level)
+          (ecc-block-nums qrversion level)
         (declare (ignore ecc-num))
         (setf (slot-value input 'msg-codewords)
               (append final
@@ -348,24 +350,24 @@ achieve the most efficient conversion of data"))
                       (take-in-turn ecc-blocks)))))))
 
 (defmethod module-placement ((input qr-input))
-  (setf (matrix input) (make-matrix (version input)))
-  (with-slots (version msg-codewords matrix) input
+  (setf (matrix input) (make-matrix (qrversion input) nil))
+  (with-slots (qrversion msg-codewords matrix) input
     ;; Function pattern placement
-    (function-patterns matrix version)
+    (function-patterns matrix qrversion)
     ;; Symbol character placement
-    (let ((rbits (remainder-bits version))
+    (let ((rbits (remainder-bits qrversion))
           (bstream nil))
-      (labels ((dec->byte (codeword)
+      (cl-labels ((dec->byte (codeword)
                  (decimal->bstream codeword 8)))
         (setf bstream (append (reduce #'append (mapcar #'dec->byte msg-codewords))
                               ;; data capacity of _symbol_ does not divide by 8
-                              (make-list rbits :initial-element 0))))
-      (symbol-character bstream matrix version))))
+                              (make-list rbits 0))))
+      (symbol-character bstream matrix qrversion))))
 
 (defmethod data-masking ((input qr-input))
   "(masked matrix, mask pattern reference)"
-  (with-slots (version (level ec-level) matrix) input
-    (let ((modules (matrix-modules version)))
+  (with-slots (qrversion (level ec-level) matrix) input
+    (let ((modules (matrix-modules qrversion)))
       (multiple-value-bind (masked indicator)
           (choose-masking matrix modules level)
         (values masked (mask-pattern-ref indicator))))))

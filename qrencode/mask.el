@@ -2,24 +2,25 @@
 ;;;;
 ;;;; Data masking
 
-(in-package #:cl-qrencode)
+;;(in-package #:cl-qrencode)
+(require 'cl)
 
 ;;; only encoding region modules (excluding format information) are masked
 (defun encoding-module-p (matrix i j)
   "modules belong to encoding region, excluding format & version information"
-  (or (eq (aref matrix i j) :light)
-      (eq (aref matrix i j) :dark)))
+  (or (eq (aref (aref matrix i) j) :light)
+      (eq (aref (aref matrix i) j) :dark)))
 (defun non-mask-module-p (matrix i j)
   (not (encoding-module-p matrix i j)))
 (defun reverse-module-color (matrix i j)
-  (case (aref matrix i j)
+  (case (aref (aref matrix i) j)
     (:dark :light) (:light :dark)))
 
 ;;; all modules are evaluated:
 ;;;  there should be only :dark :light :fdark :flight modules left by now
 (defun dark-module-p (matrix i j)
-  (or (eq (aref matrix i j) :fdark)
-      (eq (aref matrix i j) :dark)))
+  (or (eq (aref (aref matrix i) j) :fdark)
+      (eq (aref (aref matrix i) j) :dark)))
 
 (defun copy-and-mask (matrix modules level mask-ind)
   "make a new matrix and mask using MASK-IND for later evaluation"
@@ -30,11 +31,11 @@
       (dotimes (j modules)
         (cond
           ((non-mask-module-p matrix i j)
-           (setf (aref ret i j) (aref matrix i j)))
+           (setf (aref (aref ret i) j) (aref (aref matrix i) j)))
           ((funcall mask-p i j) ; need mask
-           (setf (aref ret i j) (reverse-module-color matrix i j)))
+           (setf (aref (aref ret i) j) (reverse-module-color matrix i j)))
           (t
-           (setf (aref ret i j) (aref matrix i j))))
+           (setf (aref (aref ret i) j) (aref (aref matrix i) j))))
         (when (dark-module-p ret i j)
           (incf darks))))
     (multiple-value-bind (dummy fi-darks)
@@ -50,7 +51,7 @@
       (dotimes (j modules)
         (and (encoding-module-p matrix i j)
              (funcall mask-p i j)
-             (setf (aref matrix i j) (reverse-module-color matrix i j)))))
+             (setf (aref (aref matrix i) j) (reverse-module-color matrix i j)))))
     ;; paint format information
     (format-information matrix modules level mask-ind)
     matrix))
@@ -82,7 +83,7 @@
   (let ((penalty 0))
     (incf penalty (evaluate-feature-2 matrix modules))
     (dotimes (col modules)
-      (let ((rlength (calc-run-length matrix modules col)))
+      (let ((rlength (calc-run-length matrix modules col :row)))
         (incf penalty (evaluate-feature-1 rlength))
         (incf penalty (evaluate-feature-3 rlength))))
     (dotimes (row modules)
@@ -91,14 +92,15 @@
         (incf penalty (evaluate-feature-3 rlength))))
     penalty))
 
-(defun calc-run-length (matrix modules num &optional (direction :row))
+(defun calc-run-length (matrix modules num direction)
   "list of number of adjacent modules in same color"
+  (when (null direction) (setf direction :row))
   (let ((rlength nil)
         (ridx 0))
-    (labels ((get-elem (idx)
+    (cl-labels ((get-elem (idx)
                (case direction
-                 (:row (aref matrix num idx))
-                 (:col (aref matrix idx num))))
+                 (:row (aref (aref matrix num) idx))
+                 (:col (aref (aref matrix idx) num))))
              (add-to-list (list elem)
                (append list (list elem))))
       ;; we make sure (NTH 1 rlength) is for dark module

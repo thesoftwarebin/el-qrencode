@@ -2,7 +2,10 @@
 ;;;;
 ;;;; final QR code symbol
 
-(in-package #:cl-qrencode)
+;; (in-package #:cl-qrencode)
+
+(require 'cl)
+(require 'eieio)
 
 (defclass qr-symbol ()
   ((matrix :initform nil :initarg :matrix :reader matrix
@@ -10,24 +13,24 @@
    (modules :initform nil :initarg :modules :reader modules
             :documentation "qr code symbol modules")))
 
-(defmethod print-object ((symbol qr-symbol) stream)
-  (fresh-line stream)
-  (with-slots (matrix modules) symbol
-    (format stream "qr symbol ~A x ~A:~%" modules modules)
-    (dotimes (i modules)
-      (dotimes (j modules)
-        (if (dark-module-p matrix i j)
-            (format stream "1 ")
-            (format stream "0 ")))
-      (format stream "~%"))))
+;; (defmethod print-object ((symbol qr-symbol) stream)
+;;   (fresh-line stream)
+;;   (with-slots (matrix modules) symbol
+;;     (format stream "qr symbol ~A x ~A:~%" modules modules)
+;;     (dotimes (i modules)
+;;       (dotimes (j modules)
+;;         (if (dark-module-p matrix i j)
+;;             (format stream "1 ")
+;;             (format stream "0 ")))
+;;       (format stream "~%"))))
 
 ;;; FIXME: other encodings???
 (defun ascii->bytes (text)
-  (map 'list #'char-code text))
+  (map 'list #'identity text))
 
 (defun bytes->input (bytes version level mode)
   (setf version (min (max version 1) 40))
-  (let ((input (make-instance 'qr-input :bytes bytes :version version
+  (let ((input (make-instance 'qr-input :bytes bytes :qrversion version
                               :ec-level level :mode mode)))
     (data-encoding input)
     (ec-coding input)
@@ -40,13 +43,15 @@
   (multiple-value-bind (matrix mask-ref)
       (data-masking input)
     (declare (ignore mask-ref))
-    (let ((modules (matrix-modules (version input))))
+    (let ((modules (matrix-modules (qrversion input))))
       (make-instance 'qr-symbol :matrix matrix :modules modules))))
 
-(defun encode-symbol-bytes (bytes &key (version 1) (level :level-m) (mode nil))
+(defun encode-symbol-bytes (bytes version level mode)
   "encode final qr symbol from BYTES list"
+  (when (null version) (setf version 1))
+  (when (null level) (setf level :level-m))
   (let ((input (bytes->input bytes version level mode)))
-    (dbg :dbg-input "version: ~A; segments: ~A~%" (version input)
+    (dbg :dbg-input "version: ~A; segments: ~A~%" (qrversion input)
          (segments input))
     (input->symbol input)))
 
@@ -56,7 +61,9 @@
 ;;;   This function wraps all we need.
 ;;;-----------------------------------------------------------------------------
 ;; (sdebug :dbg-input)
-(defun encode-symbol (text &key (version 1) (level :level-m) (mode nil))
+(defun encode-symbol (text version level mode)
   "encode final qr symbol, unless you know what you are doing, leave MODE NIL"
+  (when (null version) (setf version 1))
+  (when (null level) (setf level :level-m))
   (let ((bytes (ascii->bytes text)))
-    (encode-symbol-bytes bytes :version version :level level :mode mode)))
+    (encode-symbol-bytes bytes version level mode)))

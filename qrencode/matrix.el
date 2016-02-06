@@ -2,7 +2,9 @@
 ;;;;
 ;;;; Codeword placement in matrix
 
-(in-package #:cl-qrencode)
+;;(in-package #:cl-qrencode)
+
+(require 'cl)
 
 (deftype module-color ()
   ":RAW, nothing has been done to this module; :RESERVE, format info reserve module
@@ -18,24 +20,27 @@
 
 (defun raw-module-p (matrix i j)
   "nothing has been done to MATRIX[I, J]"
-  (eq (aref matrix i j) :raw))
+  (eq (aref (aref matrix i) j) :raw))
 
-(defun make-modules-matrix (modules &optional (init :raw))
+(defun make-modules-matrix (modules init)
   "make a raw matrix with MODULES * MODULES elements"
+  (when (null init) (setf init :raw))
   (make-array `(,modules ,modules) :initial-element init))
 
-(defun make-matrix (version &optional (init :raw))
+(defun make-matrix (version init)
   "make a raw matrix according to VERSION"
+  (when (null init) (setf init :raw))
   (let ((n (matrix-modules version)))
     (make-modules-matrix n init)))
 
-(defun paint-square (matrix x y n &optional (color :fdark))
+(defun paint-square (matrix x y n color)
   "Paint a square of size N*N starting from upleft (X, Y) in MATRIX to COLOR"
+  (when (null color) (setf color :fdark))
   (let ((maxx (+ x n -1))
         (maxy (+ y n -1)))
     (loop for i from x to maxx do
          (loop for j from y to maxy do
-              (setf (aref matrix i j) color))))
+              (setf (aref (aref matrix i) j) color))))
   matrix)
 
 ;;; Function Patterns
@@ -66,16 +71,16 @@
     ;; top-left horizontal separator
     (setf (aref matrix 7 j) :flight)
     ;; top-right horizontal separator
-    (setf (aref matrix 7 (- modules j 1)) :flight)
+    (setf (aref (aref matrix 7) (- modules j 1)) :flight)
     ;; bottom-left horizontal separator
-    (setf (aref matrix (- modules 8) j) :flight))
+    (setf (aref (aref matrix (- modules 8)) j) :flight))
   (dotimes (i 8)
     ;; top-left vertical separator
-    (setf (aref matrix i 7) :flight)
+    (setf (aref (aref matrix i) 7) :flight)
     ;; bottom-left vertical separator
-    (setf (aref matrix (- modules i 1) 7) :flight)
+    (setf (aref (aref matrix (- modules i 1)) 7) :flight)
     ;; top-right vertical separator
-    (setf (aref matrix i (- modules 8)) :flight))
+    (setf (aref (aref matrix i) (- modules 8)) :flight))
   matrix)
 
 ;; c) Timing patterns
@@ -86,9 +91,9 @@
              (setf color :fdark)
              (setf color :flight))
          ;; Horizontal
-         (setf (aref matrix 6 idx) color)
+         (setf (aref (aref matrix 6) idx) color)
          ;; Vertical
-         (setf (aref matrix idx 6) color)))
+         (setf (aref (aref matrix idx) 6) color)))
   matrix)
 
 ;; d) Alignment Patterns: varies between versions
@@ -116,15 +121,15 @@
     (dotimes (j 8)
       (when (raw-module-p matrix 8 j)
         (setf (aref matrix 8 j) :reserve))
-      (setf (aref matrix 8 (- modules j 1)) :reserve))
-    (setf (aref matrix 8 8) :reserve)
+      (setf (aref (aref matrix 8) (- modules j 1)) :reserve))
+    (setf (aref (aref matrix 8) 8) :reserve)
     ;; top-left & bottom-left vertical
     (dotimes (i 8)
       (when (raw-module-p matrix i 8)
-        (setf (aref matrix i 8) :reserve))
-      (setf (aref matrix (- modules i 1) 8) :reserve))
+        (setf (aref (aref matrix i) 8) :reserve))
+      (setf (aref (aref matrix (- modules i 1)) 8) :reserve))
     ;; dark module...
-    (setf (aref matrix (- modules 8) 8) :fdark)
+    (setf (aref (aref matrix (- modules 8)) 8) :fdark)
 
     ;; version information for version 7-40
     (when (>= version 7)
@@ -132,7 +137,7 @@
 
 (defun paint-fcolor-bit (matrix i j bit)
   "Paint function pattern color for MATRIX[I, J] according to BIT of {0, 1}"
-  (setf (aref matrix i j) (case bit
+  (setf (aref (aref matrix i) j) (case bit
                             (0 :flight) (1 :fdark))))
 (defun version-information (matrix modules version)
   "version information placement on two blocks of modules:
@@ -156,7 +161,7 @@ top-right 6*3 block:   [0, 5] * [modules-11, modules-9]"
 ;; Symbol character placement
 (defun paint-color-bit (matrix i j bit)
   "Paint data color for MATRIX[I, J] according to BIT of {0, 1}"
-  (setf (aref matrix i j) (case bit
+  (setf (aref (aref matrix i) j) (case bit
                             (0 :light) (1 :dark))))
 (defun bstream-placement (bstream matrix modules)
   "2X4 module block for a regular symbol character. Regard the interleaved
@@ -201,7 +206,7 @@ ever overlap the vertical timing pattern."
     (setf darks (count-if #'(lambda (elem) (= elem 1)) fib))
     ;; horizontal 14 ~ 8
     (loop for j from 0 to 7 do
-         (when (eq (aref matrix 8 j) :reserve)
+         (when (eq (aref (aref matrix 8) j) :reserve)
            (paint-fcolor-bit matrix 8 j (nth idx fib))
            (incf idx)))
     ;; vertical 14 ~ 8
@@ -214,7 +219,7 @@ ever overlap the vertical timing pattern."
          (incf idx))
     ;; vertical 7 - 0
     (loop for i from 8 downto 0 do
-         (when (eq (aref matrix i 8) :reserve)
+         (when (eq (aref (aref matrix i) 8) :reserve)
            (paint-fcolor-bit matrix i 8 (nth idx2 fib))
            (incf idx2)))
     (values matrix darks)))

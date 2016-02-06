@@ -1,7 +1,8 @@
 ;;;; Copyright (c) 2011-2014 jnjcc, Yste.org. All rights reserved.
 ;;;;
 
-(in-package #:cl-qrencode)
+;;(in-package #:cl-qrencode)
+(require 'cl)
 
 (deftype qr-mode ()
   '(member :unknown
@@ -27,8 +28,8 @@
                   nbits)))
     (cond
       ((< diff 0) (error "you serious about this?!"))
-      ((<= diff 4) (make-list diff :initial-element 0))
-      (t (make-list 4 :initial-element 0)))))
+      ((<= diff 4) (make-list diff 0))
+      (t (make-list 4 0)))))
 
 (defun byte-value (mode byte)
   "BYTE value under MODE"

@@ -2,25 +2,33 @@
 ;;;;
 ;;;; Bose-Chaudhuri-Hocquenghem (BCH) error correction code
 
-(in-package #:cl-qrencode)
+;; (in-package #:cl-qrencode)
+(require 'cl)
+(require 'eieio)
 
 ;;; Polynomial (using list) arithmetics
 ;;; by polynomial list (3 2 1), we mean 3*x^2 + 2*x + 1
 (defun poly-ash (poly s)
   "shift left POLY by S"
-  (declare (type list poly))
-  (append poly (make-list s :initial-element 0)))
-(defun poly-multiply (poly b &optional (op #'*))
+  (append poly (make-list s 0)))
+(defun poly-multiply (poly b op)
   "multiply B on every element of POLY using OP"
-  (labels ((mult (elem)
+  (when (null op) (setf op #'*))
+  (cl-labels ((mult (elem)
              (funcall op elem b)))
     (mapcar #'mult poly)))
-(defun poly-substract (lhs rhs &optional (op #'-))
-  (labels ((sub (elem1 elem2)
+(defun poly-multiply-2-args (poly b)
+  "multiply B on every element of POLY using OP"
+  (poly-multiply poly b #'*))
+(defun poly-substract (lhs rhs op)
+  (when (null op) (setf op #'-))
+  (cl-labels ((sub (elem1 elem2)
              (funcall op elem1 elem2)))
-    (mapcar #'sub lhs rhs)))
-(defun poly-mod (msg gen rem &optional (sub #'poly-substract) (mul #'poly-multiply))
+    (map 'list #'sub lhs rhs)))
+(defun poly-mod (msg gen rem sub mul)
   "MSG % GEN, with REM remainders"
+  (when (null sub) (setf sub #'poly-substract))
+  (when (null mul) (setf mul #'poly-multiply-2-args))
   (do ((m (poly-ash msg rem) (cdr m)))
       ((<= (length m) rem) m)
     (let* ((glen (length gen))
@@ -36,25 +44,25 @@
        :documentation "# of error correction codewords")))
 
 (defun bch* (poly b)
-  (poly-multiply poly b))
+  (poly-multiply-2-args poly b))
 (defun bch- (lhs rhs)
-  (labels ((xor (a b)
-             (boole boole-xor a b)))
+  (cl-labels ((xor (a b)
+             (logxor a b)))
     (poly-substract lhs rhs #'xor)))
 (defun bch-xor (lhs rhs)
-  (labels ((xor (a b)
-             (boole boole-xor a b)))
-    (mapcar #'xor lhs rhs)))
+  (cl-labels ((xor (a b)
+             (logxor a b)))
+    (map 'list #'xor lhs rhs)))
 (defun bch% (msg gen rem)
   (poly-mod msg gen rem #'bch- #'bch*))
 
-(defgeneric bch-ecc (bch msgpoly genpoly)
-  (:documentation "do bch error correction under BCH(K+EC, K)"))
+(defgeneric make-bch-ecc (bch msgpoly genpoly)
+  "do bch error correction under BCH(K+EC, K)")
 
-(defmethod bch-ecc ((bch bch-ecc) msg gen)
+(defmethod make-bch-ecc ((bch bch-ecc) msg gen)
   (with-slots (k ec) bch
     (unless (= (length msg) k)
-      (error "wrong msg length, expect: ~A; got: ~A~%" k (length msg)))
+      (error "wrong msg length, expect: %s; got: %s" k (length msg)))
     (bch% msg gen ec)))
 
 ;;; As used by format information ecc & version information ecc respectively
@@ -67,7 +75,7 @@
   (defun format-ecc (level mask-ind)
     (let ((seq (append (level-indicator level)
                        (mask-pattern-ref mask-ind))))
-      (bch-xor (append seq (bch-ecc fi-ecc seq fi-gpoly))
+      (bch-xor (append seq (make-bch-ecc fi-ecc seq fi-gpoly))
                fi-xor))))
 
 (let ((vi-ecc (make-instance 'bch-ecc :k 6 :ec 12))
@@ -76,4 +84,4 @@
       (vi-gpoly '(1 1 1 1 1 0 0 1 0 0 1 0 1)))
   (defun version-ecc (version)
     (let ((seq (decimal->bstream version 6)))
-      (append seq (bch-ecc vi-ecc seq vi-gpoly)))))
+      (append seq (make-bch-ecc vi-ecc seq vi-gpoly)))))

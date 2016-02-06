@@ -1,8 +1,12 @@
+;; -*- lexical-binding: t -*-
+
 ;;;; Copyright (c) 2011-2014 jnjcc, Yste.org. All rights reserved.
 ;;;;
 ;;;; Reed-Solomon error correction code as used by QR code
 
-(in-package #:cl-qrencode)
+;;(in-package #:cl-qrencode)
+(require 'cl)
+(require 'eieio)
 
 ;;; Reed-Solomon code uses GF(2^8) with prime polynomial 285,
 ;;; or 1,0001,1101, or (x^8 + x^4 + x^3 + x^2 + 1)
@@ -66,3 +70,4 @@
       (unless (= (length msg-poly) k)
         (error "wrong msg-poly length, expect: ~A~%" k))
       (rs% msg-poly gpoly ec))))
+
