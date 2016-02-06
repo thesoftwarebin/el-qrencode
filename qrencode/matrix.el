@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;;;; Copyright (c) 2011-2014 jnjcc, Yste.org. All rights reserved.
 ;;;;
 ;;;; Codeword placement in matrix
@@ -23,12 +25,15 @@
   (eq (aref (aref matrix i) j) :raw))
 
 (defun make-array (rows cols elem)
-  (make-vector rows (make-vector cols elem)))
+  (let ((v (make-vector rows nil)))
+    (loop for i from 0 to (1- (length v)) do
+          (setf (aref v i) (make-vector cols elem)))
+    v))
 
 (defun make-modules-matrix (modules init)
   "make a raw matrix with MODULES * MODULES elements"
   (when (null init) (setf init :raw))
-  (make-array `(,modules ,modules) :initial-element init))
+  (make-array modules modules init))
 
 (defun make-matrix (version init)
   "make a raw matrix according to VERSION"
@@ -197,7 +202,7 @@ ever overlap the vertical timing pattern."
                 ;; vertical timing pattern reached, the next block starts
                 ;; to the left of it
                 (decf j 3)
-                (decf j 2)))))))
+              (decf j 2)))))))
 
 ;;; format information, during and after masking
 (defun format-information (matrix modules level mask-ind)

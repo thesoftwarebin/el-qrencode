@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;;;; Copyright (c) 2011-2014 jnjcc, Yste.org. All rights reserved.
 ;;;;
 ;;;; bit stream (a list of 0-1 values) utilities

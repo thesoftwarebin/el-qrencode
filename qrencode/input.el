@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;;;; Copyright (c) 2011-2014 jnjcc, Yste.org. All rights reserved.
 ;;;;
 
@@ -7,7 +9,7 @@
 
 (defclass qr-input ()
   ((bytes
-    :initform nil :initarg :bytes :reader bytes :type list
+    :initform nil :initarg :bytes :reader bytes ;; :type list
     :documentation "list of bytes to be encoded")
    (qrversion
     :initform 1 :initarg :qrversion :reader qrversion
@@ -22,21 +24,21 @@ therefore, unless you know exactly what you are doing, leave this NIL")
     :initform 0 :accessor cur-byte
     :documentation "index of BYTES during data analysis")
    (segments
-    :initform nil :accessor segments :type list
+    :initform nil :accessor segments ;; :type list
     :documentation
     "list of list, of the form ((:mode1 byte ...) (:mode2 byte ...) ...)")
    (bstream
-    :initform nil :reader bstream :type list
+    :initform nil :reader bstream ;; :type list
     :documentation "list of 0-1 values after encoding SEGMENTS")
    (blocks
-    :initform nil :reader blocks :type list
+    :initform nil :reader blocks ;; :type list
     :documentation "list of list, of the form ((codeword ...) (codeword ...) ...)
 after converting BSTREAM to codewords")
    (ecc-blocks ; error correction blocks
-    :initform nil :reader ecc-blocks :type list
+    :initform nil :reader ecc-blocks ;; :type list
     :documentation "list of list, ec codewords corresponding to BLOCKS")
    (msg-codewords
-    :initform nil :reader qrmessage :type list
+    :initform nil :reader qrmessage ;; :type list
     :documentation "list of codewords from BLOCKS & ECC-BLOCKS,
 interleaving if neccessary")
    (matrix
@@ -167,46 +169,47 @@ achieve the most efficient conversion of data")
 
 (defmethod analyse-byte-mode ((input qr-input) &optional seg)
   ;; (declare (type list seg))
-  (when (null seg)
-    (setf seg '(:byte)))
-  (setf seg (append-cur-byte input seg))
-  (unless seg
-    (return-from analyse-byte-mode))
-  (with-slots (bytes cur-byte qrversion segments) input
-    (let* ((range (version-range qrversion))
-           (nkunits (ecase range ; number of :kanji units before more :byte
-                      (0 9) (1 12) (2 13)))
-           (nanuits (ecase range ; number of :alnum units before more :byte
-                      (0 11) (1 15) (2 16)))
-           (nmunits1 (ecase range ; number of :numeric units before more :byte
-                       (0 6) (1 8) (2 9)))
-           (nmunits2 (ecase range ; number of :numeric units before more :alnum
-                       (0 6) (1 7) (2 8)))
-           (switch-mode nil))
-      (multiple-value-bind (nmatches last-mode)
-          (nunits-matches (nthcdr cur-byte bytes) :kanji)
-        (and (>= nmatches nkunits) (eq last-mode :byte)
-             (setf switch-mode :kanji)))
-      (unless switch-mode
+  (block analyse-byte-mode-block
+    (when (null seg)
+      (setf seg '(:byte)))
+    (setf seg (append-cur-byte input seg))
+    (unless seg
+      (return-from analyse-byte-mode-block))
+    (with-slots (bytes cur-byte qrversion segments) input
+      (let* ((range (version-range qrversion))
+             (nkunits (ecase range ; number of :kanji units before more :byte
+                        (0 9) (1 12) (2 13)))
+             (nanuits (ecase range ; number of :alnum units before more :byte
+                        (0 11) (1 15) (2 16)))
+             (nmunits1 (ecase range ; number of :numeric units before more :byte
+                         (0 6) (1 8) (2 9)))
+             (nmunits2 (ecase range ; number of :numeric units before more :alnum
+                         (0 6) (1 7) (2 8)))
+             (switch-mode nil))
         (multiple-value-bind (nmatches last-mode)
-            (nunits-matches (nthcdr cur-byte bytes) :alnum)
-          (and (>= nmatches nanuits) (eq last-mode :byte)
-               (setf switch-mode :alnum))))
-      (unless switch-mode
-        (multiple-value-bind (nmatches last-mode)
-            (nunits-matches (nthcdr cur-byte bytes) :numeric)
-          (case last-mode
-            (:byte (and (>= nmatches nmunits1)
-                        (setf switch-mode :numeric)))
-            (:alnum (and (>= nmatches nmunits2)
-                         (setf switch-mode :numeric))))))
-      (if switch-mode
-          (progn
-            ;; current segment finished, add a new SWITCH-MODE segment
-            (setf segments (append segments (list seg)))
-            (setf seg (list switch-mode)))
+            (nunits-matches (nthcdr cur-byte bytes) :kanji)
+          (and (>= nmatches nkunits) (eq last-mode :byte)
+               (setf switch-mode :kanji)))
+        (unless switch-mode
+          (multiple-value-bind (nmatches last-mode)
+              (nunits-matches (nthcdr cur-byte bytes) :alnum)
+            (and (>= nmatches nanuits) (eq last-mode :byte)
+                 (setf switch-mode :alnum))))
+        (unless switch-mode
+          (multiple-value-bind (nmatches last-mode)
+              (nunits-matches (nthcdr cur-byte bytes) :numeric)
+            (case last-mode
+              (:byte (and (>= nmatches nmunits1)
+                          (setf switch-mode :numeric)))
+              (:alnum (and (>= nmatches nmunits2)
+                           (setf switch-mode :numeric))))))
+        (if switch-mode
+            (progn
+              ;; current segment finished, add a new SWITCH-MODE segment
+              (setf segments (append segments (list seg)))
+              (setf seg (list switch-mode)))
           (setf switch-mode :byte))
-      (funcall (mode-analyse-func switch-mode) input seg))))
+        (funcall (mode-analyse-func switch-mode) input seg)))))
 
 (defmethod analyse-alnum-mode (input seg)
   (declare (type list seg))
@@ -234,38 +237,42 @@ achieve the most efficient conversion of data")
           (setf switch-mode :alnum))
       (funcall (mode-analyse-func switch-mode) input seg))))
 
-(defmethod analyse-numeric-mode (input seg)
-  (declare (type list seg))
-  (setf seg (append-cur-byte input seg))
-  (unless seg
-    (return-from analyse-numeric-mode))
-  (with-slots (bytes cur-byte qrversion segments) input
-    (let ((switch-mode nil))
-      (when (>= (nunits-matches (nthcdr cur-byte bytes) :kanji) 1)
-        (setf switch-mode :kanji))
-      (unless switch-mode
-        (when (>= (nunits-matches (nthcdr cur-byte bytes) :byte) 1)
-          (setf switch-mode :byte)))
-      (unless switch-mode
-        (when (>= (nunits-matches (nthcdr cur-byte bytes) :alnum) 1)
-          (setf switch-mode :alnum)))
-      (if switch-mode
-          (progn
-            (setf segments (append segments (list seg)))
-            (setf seg (list switch-mode)))
+(defmethod analyse-numeric-mode (input &optional seg)
+  ;; (declare (type list seg))
+  (block analyse-numeric-mode-block
+    (when (null seg)
+      (setf seg '(:numeric)))
+    (setf seg (append-cur-byte input seg))
+    (unless seg
+      (return-from analyse-numeric-mode-block))
+    (with-slots (bytes cur-byte qrversion segments) input
+      (let ((switch-mode nil))
+        (when (>= (nunits-matches (nthcdr cur-byte bytes) :kanji) 1)
+          (setf switch-mode :kanji))
+        (unless switch-mode
+          (when (>= (nunits-matches (nthcdr cur-byte bytes) :byte) 1)
+            (setf switch-mode :byte)))
+        (unless switch-mode
+          (when (>= (nunits-matches (nthcdr cur-byte bytes) :alnum) 1)
+            (setf switch-mode :alnum)))
+        (if switch-mode
+            (progn
+              (setf segments (append segments (list seg)))
+              (setf seg (list switch-mode)))
           (setf switch-mode :numeric))
-      (funcall (mode-analyse-func switch-mode) input seg))))
+        (funcall (mode-analyse-func switch-mode) input seg)))))
 
 (defmethod append-cur-byte ((input qr-input) &optional seg)
   "if CUR-BYTE is the last byte, return nil"
-  (declare (type list seg))
-  (with-slots (bytes cur-byte segments) input
-    (setf seg (append seg (list (nth cur-byte bytes))))
-    (incf cur-byte)
-    (when (>= cur-byte (length bytes))
-      (setf segments (append segments (list seg)))
-      (setf seg nil))
-    (return-from append-cur-byte seg)))
+  ;;(declare (type list seg))
+  (block append-cur-byte-block
+    (with-slots (bytes cur-byte segments) input
+      (setf seg (append seg (list (nth cur-byte bytes))))
+      (incf cur-byte)
+      (when (>= cur-byte (length bytes))
+        (setf segments (append segments (list seg)))
+        (setf seg nil))
+      (return-from append-cur-byte-block seg))))
 
 (defmethod analyse-kanji-mode (input seg)
   (declare (type list seg))

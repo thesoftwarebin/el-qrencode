@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;;;; Copyright (c) 2011-2014 jnjcc, Yste.org. All rights reserved.
 ;;;;
 ;;;; Bose-Chaudhuri-Hocquenghem (BCH) error correction code

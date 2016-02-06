@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;;;; Original Common Lisp:
 ;;;; Copyright (c) 2011-2014 jnjcc, Yste.org. All rights reserved.
 ;;;;
@@ -143,10 +145,11 @@ Data capacity codewords (bytes, including ecc codewords) | Remainder bits.")
 
 (defun minimum-version (init-version nbytes level)
   "minimum version that can hold NBYTES data words, or INIT-VERSION if bigger"
-  (do ((v init-version (1+ v)))
-      ((> v 40) nil)
-    (when (>= (data-words-capacity v level) nbytes)
-      (return-from minimum-version v))))
+  (block minimum-version-block
+    (do ((v init-version (1+ v)))
+        ((> v 40) nil)
+      (when (>= (data-words-capacity v level) nbytes)
+        (return-from minimum-version-block v)))))
 
 (defun version-range (version)
   (cond
@@ -196,7 +199,7 @@ Data capacity codewords (bytes, including ecc codewords) | Remainder bits.")
 (defun align-centers (version)
   "list of all valid alignment pattern center modules under VERSION"
   (let* ((modules (matrix-modules version))
-         (coords (aref (aref *align-coord-table* version) 1))
+         (coords (coerce (aref (aref *align-coord-table* version) 1) 'list))
          (len (length coords))
          (centers nil))
     (dotimes (i len)

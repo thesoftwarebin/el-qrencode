@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;;;; Copyright (c) 2011-2014 jnjcc, Yste.org. All rights reserved.
 ;;;;
 ;;;; Galois Field with primitive element 2, as used by Reed-Solomon code
