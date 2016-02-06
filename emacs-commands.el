@@ -47,11 +47,17 @@
        (memq (aref (aref mtx j) i) '(:dark :fdark))
      nil)))
 
+;;;###autoload
 (defun qrencode-string (msg)
   "insert an ASCII QR in the current buffer"
   (interactive "sMessage to encode:")
-  (let ((q (matrix (encode-symbol msg nil nil nil)))
-        )
+  (let ((q (matrix
+            (encode-symbol
+             (with-temp-buffer
+               (insert msg)
+               (toggle-enable-multibyte-characters -1)
+               (buffer-substring-no-properties (point-min) (point-max)))
+             nil nil nil))))
     (save-window-excursion
       (set-buffer (get-buffer-create qrencode-buffer-name))
       (delete-region (point-min) (point-max))
@@ -66,7 +72,7 @@
                 (insert "\n"))))
       (goto-char (point-min)))))
 
-
+;;;###autoload
 (defun qrencode-region (from to)
   (interactive "r")
   (when (region-active-p)
