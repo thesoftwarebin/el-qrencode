@@ -165,8 +165,10 @@ achieve the most efficient conversion of data")
          (values nunits (xor-subset-of b)))
       (incf nunits))))
 
-(defmethod analyse-byte-mode ((input qr-input) seg)
-  (declare (type list seg))
+(defmethod analyse-byte-mode ((input qr-input) &optional seg)
+  ;; (declare (type list seg))
+  (when (null seg)
+    (setf seg '(:byte)))
   (setf seg (append-cur-byte input seg))
   (unless seg
     (return-from analyse-byte-mode))

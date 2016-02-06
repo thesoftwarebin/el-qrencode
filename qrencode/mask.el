@@ -24,7 +24,7 @@
 
 (defun copy-and-mask (matrix modules level mask-ind)
   "make a new matrix and mask using MASK-IND for later evaluation"
-  (let ((ret (make-modules-matrix modules))
+  (let ((ret (make-modules-matrix modules nil))
         (mask-p (mask-condition mask-ind))
         (darks 0))
     (dotimes (i modules)

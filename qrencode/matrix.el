@@ -22,6 +22,9 @@
   "nothing has been done to MATRIX[I, J]"
   (eq (aref (aref matrix i) j) :raw))
 
+(defun make-array (rows cols elem)
+  (make-vector rows (make-vector cols elem)))
+
 (defun make-modules-matrix (modules init)
   "make a raw matrix with MODULES * MODULES elements"
   (when (null init) (setf init :raw))
@@ -69,7 +72,7 @@
 (defun separator (matrix modules)
   (dotimes (j 8)
     ;; top-left horizontal separator
-    (setf (aref matrix 7 j) :flight)
+    (setf (aref (aref matrix 7) j) :flight)
     ;; top-right horizontal separator
     (setf (aref (aref matrix 7) (- modules j 1)) :flight)
     ;; bottom-left horizontal separator
@@ -120,7 +123,7 @@
     ;; top-left & top-right horizontal
     (dotimes (j 8)
       (when (raw-module-p matrix 8 j)
-        (setf (aref matrix 8 j) :reserve))
+        (setf (aref (aref matrix 8) j) :reserve))
       (setf (aref (aref matrix 8) (- modules j 1)) :reserve))
     (setf (aref (aref matrix 8) 8) :reserve)
     ;; top-left & bottom-left vertical
