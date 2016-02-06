@@ -88,15 +88,16 @@ achieve the most efficient conversion of data")
     (:kanji #'analyse-kanji-mode)))
 
 (defmethod data-analysis ((input qr-input))
-  (with-slots (mode cur-byte segments) input
-    (when mode ; MODE supplied
-      (let ((seg (append (list mode) (bytes input))))
-        (setf cur-byte (length (bytes input)))
-        (setf segments (append segments (list seg))))
-      (return-from data-analysis)))
-  (with-slots (bytes qrversion segments) input
-    (let ((init-mode (select-init-mode bytes qrversion)))
-      (funcall (mode-analyse-func init-mode) input))))
+  (block data-analysis-block
+    (with-slots (mode cur-byte segments) input
+      (when mode ; MODE supplied
+        (let ((seg (append (list mode) (bytes input))))
+          (setf cur-byte (length (bytes input)))
+          (setf segments (append segments (list seg))))
+        (return-from data-analysis-block)))
+    (with-slots (bytes qrversion segments) input
+      (let ((init-mode (select-init-mode bytes qrversion)))
+        (funcall (mode-analyse-func init-mode) input)))))
 
 (defmethod redo-data-analysis ((input qr-input))
   (with-slots (cur-byte segments) input
@@ -146,12 +147,13 @@ achieve the most efficient conversion of data")
 (defun every-unit-matches (bytes usize nunits mode)
   "if every unit of USZIE bytes (at most NUNITS unit) within BYTES matches MODE"
   ;; (declare (type list bytes) (type qr-mode mode))
-  (when (>= (length bytes) (* usize nunits))
-    (dotimes (i nunits)
-      (let ((b (nthcdr (* usize i) bytes)))
-        (unless (eq (xor-subset-of b) mode)
-          (return-from every-unit-matches nil))))
-    (return-from every-unit-matches t)))
+  (block every-unit-matches-block
+    (when (>= (length bytes) (* usize nunits))
+      (dotimes (i nunits)
+        (let ((b (nthcdr (* usize i) bytes)))
+          (unless (eq (xor-subset-of b) mode)
+            (return-from every-unit-matches-block nil))))
+      (return-from every-unit-matches-block t))))
 
 (defun nunits-matches (bytes mode)
   "(number of units that matches MODE, and mode for the first unmatched unit)"
@@ -211,31 +213,33 @@ achieve the most efficient conversion of data")
           (setf switch-mode :byte))
         (funcall (mode-analyse-func switch-mode) input seg)))))
 
-(defmethod analyse-alnum-mode (input seg)
-  (declare (type list seg))
-  (setf seg (append-cur-byte input seg))
-  (unless seg
-    (return-from analyse-alnum-mode))
-  (with-slots (bytes cur-byte qrversion segments) input
-    (let ((nmunits (ecase (version-range qrversion)
-                     (0 13) (1 15) (2 17)))
-          (switch-mode nil))
-      (when (>= (car (nunits-matches (nthcdr cur-byte bytes) :kanji)) 1)
-        (setf switch-mode :kanji))
-      (unless switch-mode
-        (when (>= (car (nunits-matches (nthcdr cur-byte bytes) :byte)) 1)
-          (setf switch-mode :byte)))
-      (unless switch-mode
-        (multiple-value-bind (nmatches last-mode)
-            (nunits-matches (nthcdr cur-byte bytes) :numeric)
-          (and (>= nmatches nmunits) (eq last-mode :alnum)
-               (setf switch-mode :numeric))))
-      (if switch-mode
-          (progn
-            (setf segments (append segments (list seg)))
-            (setf seg (list switch-mode)))
+(defmethod analyse-alnum-mode (input &optional seg)  
+  (block analyse-alnum-mode-block
+    (when (null seg)
+      (setf seg '(:alnum)))
+    (setf seg (append-cur-byte input seg))
+    (unless seg
+      (return-from analyse-alnum-mode-block))
+    (with-slots (bytes cur-byte qrversion segments) input
+      (let ((nmunits (ecase (version-range qrversion)
+                       (0 13) (1 15) (2 17)))
+            (switch-mode nil))
+        (when (>= (car (nunits-matches (nthcdr cur-byte bytes) :kanji)) 1)
+          (setf switch-mode :kanji))
+        (unless switch-mode
+          (when (>= (car (nunits-matches (nthcdr cur-byte bytes) :byte)) 1)
+            (setf switch-mode :byte)))
+        (unless switch-mode
+          (multiple-value-bind (nmatches last-mode)
+              (nunits-matches (nthcdr cur-byte bytes) :numeric)
+            (and (>= nmatches nmunits) (eq last-mode :alnum)
+                 (setf switch-mode :numeric))))
+        (if switch-mode
+            (progn
+              (setf segments (append segments (list seg)))
+              (setf seg (list switch-mode)))
           (setf switch-mode :alnum))
-      (funcall (mode-analyse-func switch-mode) input seg))))
+        (funcall (mode-analyse-func switch-mode) input seg)))))
 
 (defmethod analyse-numeric-mode (input &optional seg)
   ;; (declare (type list seg))
@@ -274,8 +278,9 @@ achieve the most efficient conversion of data")
         (setf seg nil))
       (return-from append-cur-byte-block seg))))
 
-(defmethod analyse-kanji-mode (input seg)
-  (declare (type list seg))
+(defmethod analyse-kanji-mode (input &optional seg)
+  (when (null seg)
+    (setf seg '(:byte)))
   (with-slots (bytes cur-byte segments) input
     (setf seg (append seg (nthcdr cur-byte bytes)))
     (setf cur-byte (length bytes))
