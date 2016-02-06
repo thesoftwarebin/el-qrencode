@@ -52,48 +52,29 @@
 
 (ert-deftest
     test-02-encsym1 () "a simple qr code generation"
-    (should (equal
-             (matrix (encode-symbol "ciao" nil nil nil))
-             [[:fdark :fdark :fdark :fdark :fdark :fdark :fdark :flight :fdark :dark :dark :dark :light :flight :fdark :fdark :fdark :fdark :fdark :fdark :fdark]
-              [:fdark :flight :flight :flight :flight :flight :fdark :flight :fdark :dark :light :dark :dark :flight :fdark :flight :flight :flight :flight :flight :fdark]
-              [:fdark :flight :fdark :fdark :fdark :flight :fdark :flight :flight :dark :dark :dark :light :flight :fdark :flight :fdark :fdark :fdark :flight :fdark]
-              [:fdark :flight :fdark :fdark :fdark :flight :fdark :flight :fdark :light :light :light :light :flight :fdark :flight :fdark :fdark :fdark :flight :fdark]
-              [:fdark :flight :fdark :fdark :fdark :flight :fdark :flight :flight :dark :light :dark :light :flight :fdark :flight :fdark :fdark :fdark :flight :fdark]
-              [:fdark :flight :flight :flight :flight :flight :fdark :flight :flight :light :dark :dark :dark :flight :fdark :flight :flight :flight :flight :flight :fdark]
-              [:fdark :fdark :fdark :fdark :fdark :fdark :fdark :flight :fdark :flight :fdark :flight :fdark :flight :fdark :fdark :fdark :fdark :fdark :fdark :fdark]
-              [:flight :flight :flight :flight :flight :flight :flight :flight :fdark :dark :light :dark :dark :flight :flight :flight :flight :flight :flight :flight :flight]
-              [:fdark :flight :fdark :fdark :flight :fdark :fdark :fdark :flight :dark :dark :dark :dark :flight :fdark :flight :flight :fdark :flight :fdark :fdark]
-              [:light :dark :light :dark :dark :light :flight :light :dark :light :dark :dark :dark :dark :dark :light :light :light :light :light :dark]
-              [:dark :dark :light :dark :dark :dark :fdark :dark :light :dark :light :dark :light :light :light :light :light :light :light :dark :dark]
-              [:dark :light :light :light :dark :light :flight :dark :light :dark :dark :dark :light :light :dark :dark :dark :dark :light :light :dark]
-              [:light :dark :dark :dark :dark :dark :fdark :dark :dark :light :light :light :dark :light :light :dark :light :light :light :light :light]
-              [:flight :flight :flight :flight :flight :flight :flight :flight :fdark :light :dark :dark :light :light :dark :light :light :dark :light :light :light]
-              [:fdark :fdark :fdark :fdark :fdark :fdark :fdark :flight :fdark :dark :dark :dark :dark :light :light :dark :light :dark :light :light :light]
-              [:fdark :flight :flight :flight :flight :flight :fdark :flight :fdark :dark :light :light :light :light :light :dark :dark :dark :dark :light :light]
-              [:fdark :flight :fdark :fdark :fdark :flight :fdark :flight :flight :light :dark :light :dark :dark :dark :dark :dark :dark :dark :dark :dark]
-              [:fdark :flight :fdark :fdark :fdark :flight :fdark :flight :fdark :light :light :dark :light :light :dark :light :dark :dark :dark :dark :light]
-              [:fdark :flight :fdark :fdark :fdark :flight :fdark :flight :fdark :dark :light :light :dark :light :dark :dark :light :dark :light :light :light]
-              [:fdark :flight :flight :flight :flight :flight :fdark :flight :flight :dark :dark :light :light :dark :light :light :light :dark :light :light :dark]
-              [:fdark :fdark :fdark :fdark :fdark :fdark :fdark :flight :fdark :light :light :light :light :dark :light :light :dark :light :light :light :light]])))
+    (should
+     (equal
+      (matrix (encode-symbol "ciao" nil nil nil))
+      [[:fdark :fdark :fdark :fdark :fdark :fdark :fdark :flight :fdark :dark :dark :dark :light :flight :fdark :fdark :fdark :fdark :fdark :fdark :fdark]
+       [:fdark :flight :flight :flight :flight :flight :fdark :flight :fdark :dark :light :dark :dark :flight :fdark :flight :flight :flight :flight :flight :fdark]
+       [:fdark :flight :fdark :fdark :fdark :flight :fdark :flight :flight :dark :dark :dark :light :flight :fdark :flight :fdark :fdark :fdark :flight :fdark]
+       [:fdark :flight :fdark :fdark :fdark :flight :fdark :flight :fdark :light :light :light :light :flight :fdark :flight :fdark :fdark :fdark :flight :fdark]
+       [:fdark :flight :fdark :fdark :fdark :flight :fdark :flight :flight :dark :light :dark :light :flight :fdark :flight :fdark :fdark :fdark :flight :fdark]
+       [:fdark :flight :flight :flight :flight :flight :fdark :flight :flight :light :dark :dark :dark :flight :fdark :flight :flight :flight :flight :flight :fdark]
+       [:fdark :fdark :fdark :fdark :fdark :fdark :fdark :flight :fdark :flight :fdark :flight :fdark :flight :fdark :fdark :fdark :fdark :fdark :fdark :fdark]
+       [:flight :flight :flight :flight :flight :flight :flight :flight :fdark :dark :light :dark :dark :flight :flight :flight :flight :flight :flight :flight :flight]
+       [:fdark :flight :fdark :fdark :flight :fdark :fdark :fdark :flight :dark :dark :dark :dark :flight :fdark :flight :flight :fdark :flight :fdark :fdark]
+       [:light :dark :light :dark :dark :light :flight :light :dark :light :dark :dark :dark :dark :dark :light :light :light :light :light :dark]
+       [:dark :dark :light :dark :dark :dark :fdark :dark :light :dark :light :dark :light :light :light :light :light :light :light :dark :dark]
+       [:dark :light :light :light :dark :light :flight :dark :light :dark :dark :dark :light :light :dark :dark :dark :dark :light :light :dark]
+       [:light :dark :dark :dark :dark :dark :fdark :dark :dark :light :light :light :dark :light :light :dark :light :light :light :light :light]
+       [:flight :flight :flight :flight :flight :flight :flight :flight :fdark :light :dark :dark :light :light :dark :light :light :dark :light :light :light]
+       [:fdark :fdark :fdark :fdark :fdark :fdark :fdark :flight :fdark :dark :dark :dark :dark :light :light :dark :light :dark :light :light :light]
+       [:fdark :flight :flight :flight :flight :flight :fdark :flight :fdark :dark :light :light :light :light :light :dark :dark :dark :dark :light :light]
+       [:fdark :flight :fdark :fdark :fdark :flight :fdark :flight :flight :light :dark :light :dark :dark :dark :dark :dark :dark :dark :dark :dark]
+       [:fdark :flight :fdark :fdark :fdark :flight :fdark :flight :fdark :light :light :dark :light :light :dark :light :dark :dark :dark :dark :light]
+       [:fdark :flight :fdark :fdark :fdark :flight :fdark :flight :fdark :dark :light :light :dark :light :dark :dark :light :dark :light :light :light]
+       [:fdark :flight :flight :flight :flight :flight :fdark :flight :flight :dark :dark :light :light :dark :light :light :light :dark :light :light :dark]
+       [:fdark :fdark :fdark :fdark :fdark :fdark :fdark :flight :fdark :light :light :light :light :dark :light :light :dark :light :light :light :light]])))
 
 (ert t)
-
-;; altri test possibili:
-;;
-;; (make-instance 'qr-input :bytes '(99 105 97 111) :qrversion 1 :ec-level :level-m :mode nil)
-
-;; questo test con lettere funziona, :numeric ancora no
-;;
-;; (let ((bd 8)
-;;       (q (matrix (encode-symbol "ciao Andrea come va" nil nil nil))))
-;;   (loop for i from (- bd) to (+ bd (1- (length q))) do
-;;         (progn
-;;           (loop for j from (- bd) to (+ bd (1- (length q))) do
-;;                 (insert                 
-;;                  (if (and (>= i 0) (< i (length q)) (>= j 0) (< j (length (aref q i))))
-;;                      (if (memq (aref (aref q j) i) '(:dark :fdark)) " " #x2588)
-;;                    #x2588)
-;;                   ))
-;;           (insert "\n"))))
-
-

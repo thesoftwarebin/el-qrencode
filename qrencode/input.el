@@ -106,7 +106,7 @@ achieve the most efficient conversion of data")
 
 (defun select-init-mode (bytes version)
   "optimization of bitstream length: select initial mode"
-  (declare (type list bytes))
+  ;;(declare (type list bytes))
   (let ((init-xor (xor-subset-of bytes)))
     (case init-xor
       (:byte :byte)
@@ -145,7 +145,7 @@ achieve the most efficient conversion of data")
 ;;;   a byte under :numeric :alnum & :byte, or a byte-pair under :kanji
 (defun every-unit-matches (bytes usize nunits mode)
   "if every unit of USZIE bytes (at most NUNITS unit) within BYTES matches MODE"
-  (declare (type list bytes) (type qr-mode mode))
+  ;; (declare (type list bytes) (type qr-mode mode))
   (when (>= (length bytes) (* usize nunits))
     (dotimes (i nunits)
       (let ((b (nthcdr (* usize i) bytes)))
@@ -155,7 +155,7 @@ achieve the most efficient conversion of data")
 
 (defun nunits-matches (bytes mode)
   "(number of units that matches MODE, and mode for the first unmatched unit)"
-  (declare (type list bytes) (type qr-mode mode))
+  ;; (declare (type list bytes) (type qr-mode mode))
   (let ((usize (ecase mode
                  ((:byte :alnum :numeric) 1)
                  ;; as for :kanji, 2 bytes forms a single unit
@@ -220,10 +220,10 @@ achieve the most efficient conversion of data")
     (let ((nmunits (ecase (version-range qrversion)
                      (0 13) (1 15) (2 17)))
           (switch-mode nil))
-      (when (>= (nunits-matches (nthcdr cur-byte bytes) :kanji) 1)
+      (when (>= (car (nunits-matches (nthcdr cur-byte bytes) :kanji)) 1)
         (setf switch-mode :kanji))
       (unless switch-mode
-        (when (>= (nunits-matches (nthcdr cur-byte bytes) :byte) 1)
+        (when (>= (car (nunits-matches (nthcdr cur-byte bytes) :byte)) 1)
           (setf switch-mode :byte)))
       (unless switch-mode
         (multiple-value-bind (nmatches last-mode)
@@ -247,13 +247,13 @@ achieve the most efficient conversion of data")
       (return-from analyse-numeric-mode-block))
     (with-slots (bytes cur-byte qrversion segments) input
       (let ((switch-mode nil))
-        (when (>= (nunits-matches (nthcdr cur-byte bytes) :kanji) 1)
+        (when (>= (car (nunits-matches (nthcdr cur-byte bytes) :kanji)) 1)
           (setf switch-mode :kanji))
         (unless switch-mode
-          (when (>= (nunits-matches (nthcdr cur-byte bytes) :byte) 1)
+          (when (>= (car (nunits-matches (nthcdr cur-byte bytes) :byte)) 1)
             (setf switch-mode :byte)))
         (unless switch-mode
-          (when (>= (nunits-matches (nthcdr cur-byte bytes) :alnum) 1)
+          (when (>= (car (nunits-matches (nthcdr cur-byte bytes) :alnum)) 1)
             (setf switch-mode :alnum)))
         (if switch-mode
             (progn

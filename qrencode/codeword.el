@@ -30,7 +30,7 @@
 
 (defun take-in-turn (blks)
   "taking codewords from each block (bound by minimum length) in turn"
-  (reduce #'append (apply #'mapcar #'list blks)))
+  (reduce #'append (apply #'map #'list #'list blks)))
 
 (defun take-data-in-turn (blocks blk1 data1 blk2 data2)
   "taking data words from each block (might have different length) in turn"
