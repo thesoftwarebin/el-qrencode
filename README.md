@@ -58,11 +58,15 @@ other versions.
 Proposed/Needed Future Enhancements
 -----------------------------------
 
-- documentation of both the private and interactive functions
+- better documentation of both the private and interactive functions
 - code refactoring: decorate private functions and classes with the
   `qrencode--` prefix
 - code refactoring: remove recursive functions (they forced me to
   tweak `max-specpdl-size` and `max-lisp-eval-depth` in `load.el`)
+- code refactoring: turn this into an Emacs package, so it might work
+  with `M-x list-packages RET` and Emacs repositories (maybe
+  [Melpa](http://melpa.org) or
+  [Marmalade](https://marmalade-repo.org/))
 - enhancement: generate an image containing the QR code; start with
   XPM format (built-in support in Emacs), add other formats if
   possible and not too hard (SVG?)
