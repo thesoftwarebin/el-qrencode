@@ -5,6 +5,8 @@ This is a QR code generator for Emacs, written in Emacs Lisp. It's a
 CommonLISP-to-EmacsLISP port of the cl-qrencode package by jnjcc, see
 `Copyright and License` at bottom for more details.
 
+![usage example](https://github.com/thesoftwarebin/el-qrencode/blob/master/README.example.png)
+
 Please consider this EmacsLISP version as an alpha-quality hobby
 project: future version may add, rename or remove functions. 
 
